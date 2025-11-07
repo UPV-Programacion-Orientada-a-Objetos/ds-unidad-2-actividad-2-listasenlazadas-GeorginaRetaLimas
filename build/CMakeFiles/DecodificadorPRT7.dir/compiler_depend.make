@@ -740,7 +740,6 @@ CMakeFiles/DecodificadorPRT7.dir/src/main.cpp.o: /home/gina/Documentos/EstDatos/
   /usr/include/c++/13/bits/basic_string.tcc \
   /usr/include/c++/13/bits/char_traits.h \
   /usr/include/c++/13/bits/charconv.h \
-  /usr/include/c++/13/bits/codecvt.h \
   /usr/include/c++/13/bits/concept_check.h \
   /usr/include/c++/13/bits/cpp_type_traits.h \
   /usr/include/c++/13/bits/cxxabi_forced.h \
@@ -748,7 +747,6 @@ CMakeFiles/DecodificadorPRT7.dir/src/main.cpp.o: /home/gina/Documentos/EstDatos/
   /usr/include/c++/13/bits/exception.h \
   /usr/include/c++/13/bits/exception_defines.h \
   /usr/include/c++/13/bits/exception_ptr.h \
-  /usr/include/c++/13/bits/fstream.tcc \
   /usr/include/c++/13/bits/functexcept.h \
   /usr/include/c++/13/bits/functional_hash.h \
   /usr/include/c++/13/bits/hash_bytes.h \
@@ -800,7 +798,6 @@ CMakeFiles/DecodificadorPRT7.dir/src/main.cpp.o: /home/gina/Documentos/EstDatos/
   /usr/include/c++/13/ext/numeric_traits.h \
   /usr/include/c++/13/ext/string_conversions.h \
   /usr/include/c++/13/ext/type_traits.h \
-  /usr/include/c++/13/fstream \
   /usr/include/c++/13/initializer_list \
   /usr/include/c++/13/ios \
   /usr/include/c++/13/iosfwd \
@@ -918,10 +915,8 @@ CMakeFiles/DecodificadorPRT7.dir/src/main.cpp.o: /home/gina/Documentos/EstDatos/
   /usr/include/x86_64-linux-gnu/bits/wctype-wchar.h \
   /usr/include/x86_64-linux-gnu/bits/wordsize.h \
   /usr/include/x86_64-linux-gnu/c++/13/bits/atomic_word.h \
-  /usr/include/x86_64-linux-gnu/c++/13/bits/basic_file.h \
   /usr/include/x86_64-linux-gnu/c++/13/bits/c++allocator.h \
   /usr/include/x86_64-linux-gnu/c++/13/bits/c++config.h \
-  /usr/include/x86_64-linux-gnu/c++/13/bits/c++io.h \
   /usr/include/x86_64-linux-gnu/c++/13/bits/c++locale.h \
   /usr/include/x86_64-linux-gnu/c++/13/bits/cpu_defines.h \
   /usr/include/x86_64-linux-gnu/c++/13/bits/ctype_base.h \
@@ -940,8 +935,6 @@ CMakeFiles/DecodificadorPRT7.dir/src/main.cpp.o: /home/gina/Documentos/EstDatos/
   /usr/lib/gcc/x86_64-linux-gnu/13/include/stdarg.h \
   /usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h
 
-
-/usr/include/x86_64-linux-gnu/c++/13/bits/c++io.h:
 
 /usr/include/x86_64-linux-gnu/bits/unistd_ext.h:
 
@@ -963,8 +956,6 @@ CMakeFiles/DecodificadorPRT7.dir/src/main.cpp.o: /home/gina/Documentos/EstDatos/
 
 /usr/include/termios.h:
 
-/usr/include/x86_64-linux-gnu/c++/13/bits/basic_file.h:
-
 /usr/include/string.h:
 
 /usr/include/linux/falloc.h:
@@ -974,10 +965,6 @@ CMakeFiles/DecodificadorPRT7.dir/src/main.cpp.o: /home/gina/Documentos/EstDatos/
 /usr/include/fcntl.h:
 
 /usr/include/c++/13/cstring:
-
-/usr/include/c++/13/bits/fstream.tcc:
-
-/usr/include/c++/13/bits/codecvt.h:
 
 /home/gina/Documentos/EstDatos/Actividades/U2-Act2/src/TramaMap.cpp:
 
@@ -1238,8 +1225,6 @@ CMakeFiles/DecodificadorPRT7.dir/src/main.cpp.o: /home/gina/Documentos/EstDatos/
 /usr/include/c++/13/bits/locale_classes.h:
 
 /usr/include/ctype.h:
-
-/usr/include/c++/13/fstream:
 
 /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h:
 
