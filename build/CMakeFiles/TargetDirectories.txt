@@ -1,0 +1,3 @@
+/home/gina/Documentos/EstDatos/Actividades/U2-Act2/build/CMakeFiles/DecodificadorPRT7.dir
+/home/gina/Documentos/EstDatos/Actividades/U2-Act2/build/CMakeFiles/edit_cache.dir
+/home/gina/Documentos/EstDatos/Actividades/U2-Act2/build/CMakeFiles/rebuild_cache.dir

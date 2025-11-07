@@ -6,7 +6,6 @@
 */
 
 #include <iostream>
-#include <fstream>
 #include <cstring>
 #include "TramaBase.h"
 #include "TramaLoad.h"
@@ -14,14 +13,15 @@
 #include "ListaDeCarga.h"
 #include "RotorDeMapeo.h"
 
+#ifndef _WIN32
 #include <fcntl.h>
 #include <unistd.h>
 #include <termios.h>
+#include <errno.h>
+#endif
 
 /**
  * @brief Parsea una línea de trama y crea el objeto correspondiente
- * @param linea String con la trama (ej: "L,A" o "M,5")
- * @return Puntero a TramaBase (debe ser eliminado después)
  */
 TramaBase* parsearTrama(const char* linea) {
     // Copiar la línea para no modificar la original
@@ -49,13 +49,10 @@ TramaBase* parsearTrama(const char* linea) {
     char* valorStr = coma + 1;
     
     if (tipo == 'L') {
-        // Trama LOAD: el valor es un carácter
         char caracter = valorStr[0];
         return new TramaLoad(caracter);
     } else if (tipo == 'M') {
-        // Trama MAP: el valor es un número
         int rotacion = 0;
-        // Convertir string a int manualmente
         int signo = 1;
         int idx = 0;
         if (valorStr[0] == '-') {
@@ -79,19 +76,17 @@ TramaBase* parsearTrama(const char* linea) {
 
 /**
  * @brief Modo de simulación (sin puerto serial físico)
- * 
- * Para probar el programa sin Arduino, usa datos predefinidos
  */
 void modoSimulacion() {
     std::cout << "\n=== MODO SIMULACIÓN (sin Arduino) ===" << std::endl;
     std::cout << "Usando datos de prueba predefinidos...\n" << std::endl;
     
-    // Datos de prueba del enunciado
+    // Datos de prueba CORREGIDOS
     const char* tramas[] = {
-        "L,H", "L,O", "L,L", "M,2", "L,A", "L, ",
-        "L,W", "M,-2", "L,O", "L,R", "L,L", "L,D"
+        "L,H", "L,E", "L,L", "M,2", "L,N", "L,Q", "L, ",
+        "M,-2", "L,W", "L,O", "L,R", "L,L", "L,D"
     };
-    int numTramas = 12;
+    int numTramas = 13;
     
     ListaDeCarga miLista;
     RotorDeMapeo miRotor;
@@ -106,6 +101,8 @@ void modoSimulacion() {
             trama->procesar(&miLista, &miRotor);
             miLista.imprimirMensaje();
             delete trama;
+        } else {
+            std::cout << "ERROR: Trama inválida" << std::endl;
         }
         
         std::cout << std::endl;
@@ -118,46 +115,66 @@ void modoSimulacion() {
 }
 
 /**
- * @brief Modo de lectura serial real (requiere Arduino conectado)
- * @param puerto Nombre del puerto COM (ej: "COM3" o "/dev/ttyUSB0")
+ * @brief Modo de lectura serial real (Linux)
  */
 void modoSerial(const char* puerto) {
     std::cout << "\n=== MODO SERIAL REAL ===" << std::endl;
     std::cout << "Intentando conectar a: " << puerto << std::endl;
     
-    #ifdef _WIN32
-    // Código para Windows
-    HANDLE hSerial = CreateFileA(puerto,
-                                 GENERIC_READ | GENERIC_WRITE,
-                                 0, nullptr, OPEN_EXISTING,
-                                 FILE_ATTRIBUTE_NORMAL, nullptr);
+#ifndef _WIN32
+    // Código para Linux/Mac
+    int fd = open(puerto, O_RDWR | O_NOCTTY | O_NONBLOCK);
     
-    if (hSerial == INVALID_HANDLE_VALUE) {
+    if (fd == -1) {
         std::cerr << "Error: No se pudo abrir el puerto " << puerto << std::endl;
-        std::cerr << "Ejecutando modo simulación en su lugar..." << std::endl;
+        std::cerr << "Razón: " << strerror(errno) << std::endl;
+        std::cerr << "\nAsegúrate de que:" << std::endl;
+        std::cerr << "1. El Arduino esté conectado" << std::endl;
+        std::cerr << "2. Tengas permisos: sudo chmod 666 " << puerto << std::endl;
+        std::cerr << "3. O añádete al grupo dialout: sudo usermod -a -G dialout $USER" << std::endl;
+        std::cerr << "\nEjecutando modo simulación en su lugar..." << std::endl;
         modoSimulacion();
         return;
     }
     
-    DCB dcbSerialParams = {0};
-    dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
-    
-    if (!GetCommState(hSerial, &dcbSerialParams)) {
-        std::cerr << "Error al obtener configuración del puerto" << std::endl;
-        CloseHandle(hSerial);
+    // Configurar el puerto
+    struct termios tty;
+    if (tcgetattr(fd, &tty) != 0) {
+        std::cerr << "Error al obtener atributos del puerto" << std::endl;
+        close(fd);
+        modoSimulacion();
         return;
     }
     
-    dcbSerialParams.BaudRate = CBR_9600;
-    dcbSerialParams.ByteSize = 8;
-    dcbSerialParams.StopBits = ONESTOPBIT;
-    dcbSerialParams.Parity = NOPARITY;
+    // Configuración del puerto serial
+    cfsetospeed(&tty, B9600);
+    cfsetispeed(&tty, B9600);
     
-    if (!SetCommState(hSerial, &dcbSerialParams)) {
+    tty.c_cflag &= ~PARENB;        // Sin paridad
+    tty.c_cflag &= ~CSTOPB;        // 1 bit de parada
+    tty.c_cflag &= ~CSIZE;
+    tty.c_cflag |= CS8;            // 8 bits de datos
+    tty.c_cflag &= ~CRTSCTS;       // Sin control de flujo hardware
+    tty.c_cflag |= CREAD | CLOCAL; // Habilitar lectura
+    
+    tty.c_lflag &= ~ICANON;        // Modo no canónico
+    tty.c_lflag &= ~ECHO;          // Sin eco
+    tty.c_lflag &= ~ISIG;          // Sin señales
+    
+    tty.c_iflag &= ~(IXON | IXOFF | IXANY); // Sin control de flujo software
+    
+    tty.c_cc[VTIME] = 10;  // Timeout de 1 segundo
+    tty.c_cc[VMIN] = 0;    // Sin mínimo de caracteres
+    
+    if (tcsetattr(fd, TCSANOW, &tty) != 0) {
         std::cerr << "Error al configurar el puerto" << std::endl;
-        CloseHandle(hSerial);
+        close(fd);
+        modoSimulacion();
         return;
     }
+    
+    // Limpiar el buffer
+    tcflush(fd, TCIOFLUSH);
     
     std::cout << "Conexión establecida. Esperando tramas..." << std::endl;
     
@@ -165,13 +182,16 @@ void modoSerial(const char* puerto) {
     RotorDeMapeo miRotor;
     
     char buffer[256];
-    DWORD bytesRead;
     int bufferPos = 0;
+    int tramasRecibidas = 0;
     
     while (true) {
-        if (ReadFile(hSerial, &buffer[bufferPos], 1, &bytesRead, nullptr)) {
-            if (bytesRead > 0) {
-                if (buffer[bufferPos] == '\n') {
+        char c;
+        int n = read(fd, &c, 1);
+        
+        if (n > 0) {
+            if (c == '\n' || c == '\r') {
+                if (bufferPos > 0) {  // Solo procesar si hay datos
                     buffer[bufferPos] = '\0';
                     
                     std::cout << "Trama: [" << buffer << "] -> ";
@@ -180,90 +200,32 @@ void modoSerial(const char* puerto) {
                         trama->procesar(&miLista, &miRotor);
                         miLista.imprimirMensaje();
                         delete trama;
+                        tramasRecibidas++;
+                    } else {
+                        std::cout << "Trama inválida";
                     }
                     std::cout << std::endl;
                     
                     bufferPos = 0;
-                } else if (bufferPos < 255) {
-                    bufferPos++;
                 }
-            }
-        }
-    }
-    
-    CloseHandle(hSerial);
-    
-    #else
-    // Código para Linux/Mac
-    int fd = open(puerto, O_RDWR | O_NOCTTY);
-    
-    if (fd == -1) {
-        std::cerr << "Error: No se pudo abrir el puerto " << puerto << std::endl;
-        std::cerr << "Ejecutando modo simulación en su lugar..." << std::endl;
-        modoSimulacion();
-        return;
-    }
-    
-    struct termios tty;
-    if (tcgetattr(fd, &tty) != 0) {
-        std::cerr << "Error al obtener atributos del puerto" << std::endl;
-        close(fd);
-        return;
-    }
-    
-    cfsetospeed(&tty, B9600);
-    cfsetispeed(&tty, B9600);
-    
-    tty.c_cflag &= ~PARENB;
-    tty.c_cflag &= ~CSTOPB;
-    tty.c_cflag &= ~CSIZE;
-    tty.c_cflag |= CS8;
-    tty.c_cflag &= ~CRTSCTS;
-    tty.c_cflag |= CREAD | CLOCAL;
-    
-    tty.c_lflag &= ~ICANON;
-    tty.c_lflag &= ~ECHO;
-    tty.c_lflag &= ~ISIG;
-    
-    if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-        std::cerr << "Error al configurar el puerto" << std::endl;
-        close(fd);
-        return;
-    }
-    
-    std::cout << "Conexión establecida. Esperando tramas..." << std::endl;
-    
-    ListaDeCarga miLista;
-    RotorDeMapeo miRotor;
-    
-    char buffer[256];
-    int bufferPos = 0;
-    
-    while (true) {
-        char c;
-        int n = read(fd, &c, 1);
-        if (n > 0) {
-            if (c == '\n') {
-                buffer[bufferPos] = '\0';
-                
-                std::cout << "Trama: [" << buffer << "] -> ";
-                TramaBase* trama = parsearTrama(buffer);
-                if (trama != nullptr) {
-                    trama->procesar(&miLista, &miRotor);
-                    miLista.imprimirMensaje();
-                    delete trama;
-                }
-                std::cout << std::endl;
-                
-                bufferPos = 0;
-            } else if (bufferPos < 255) {
+            } else if (bufferPos < 255 && c >= 32 && c <= 126) {
+                // Solo caracteres imprimibles
                 buffer[bufferPos++] = c;
             }
+        } else if (n == 0) {
+            // Timeout, continuar esperando
+            usleep(100000); // 100ms
+        } else {
+            std::cerr << "Error al leer del puerto" << std::endl;
+            break;
         }
     }
     
     close(fd);
-    #endif
+#else
+    std::cerr << "Windows no soportado en esta versión" << std::endl;
+    modoSimulacion();
+#endif
 }
 
 /**
@@ -281,8 +243,8 @@ int main(int argc, char* argv[]) {
     } else {
         // Modo simulación por defecto
         std::cout << "\nUso: " << argv[0] << " [puerto]" << std::endl;
-        std::cout << "Ejemplo: " << argv[0] << " COM3" << std::endl;
-        std::cout << "         " << argv[0] << " /dev/ttyUSB0" << std::endl;
+        std::cout << "Ejemplo: " << argv[0] << " /dev/ttyUSB0" << std::endl;
+        std::cout << "         " << argv[0] << " /dev/ttyACM0" << std::endl;
         
         modoSimulacion();
     }

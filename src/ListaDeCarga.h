@@ -44,5 +44,11 @@ public:
     
     void imprimirMensaje();
     
+    /**
+     * @brief Obtiene el tamaño actual de la lista
+     * @return Cantidad de caracteres almacenados
+     */
     int getTamano() const { return tamano; }
 };
+
+#endif
